@@ -3,7 +3,7 @@ setDefaultResultOrder("ipv4first");
 
 import "dotenv/config";
 import express from "express";
-import { startIndexer, streamEvents } from "./indexer/watchStreams";
+import { startIndexer, streamEvents } from "./indexer/watchStreams.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
