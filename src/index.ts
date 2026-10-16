@@ -3,9 +3,11 @@ setDefaultResultOrder("ipv4first");
 
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 import { startIndexer, streamEvents } from "./indexer/watchStreams.js";
 
 const app = express();
+app.use(cors());
 const PORT = process.env.PORT || 4000;
 
 app.get("/health", (_req, res) => {
