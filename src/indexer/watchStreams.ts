@@ -52,7 +52,7 @@ function decodeEvent(event: any): DecodedStreamEvent | null {
 
 export async function pollEvents() {
   try {
-    const latest = await server.getLatestLedger();
+    const latest = { sequence: (await server.getHealth()).latestLedger };
     const startLedger = lastLedger ?? latest.sequence - 1000;
 
     const response = await server.getEvents({
@@ -79,7 +79,7 @@ export async function pollEvents() {
 
     lastLedger = latest.sequence;
   } catch (err) {
-    console.error("Error polling events:", err);
+    console.error("Error polling events:", (err as any)?.code ?? (err as any)?.message ?? err);
   }
 }
 
