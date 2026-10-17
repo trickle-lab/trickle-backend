@@ -52,8 +52,9 @@ function decodeEvent(event: any): DecodedStreamEvent | null {
 
 export async function pollEvents() {
   try {
-    const latest = { sequence: (await server.getHealth()).latestLedger };
-    const startLedger = lastLedger ?? latest.sequence - 1000;
+    const health = await server.getHealth();
+    const latest = { sequence: health.latestLedger };
+    const startLedger = lastLedger ?? Math.max(latest.sequence - 17280, health.oldestLedger);
 
     const response = await server.getEvents({
       startLedger,
