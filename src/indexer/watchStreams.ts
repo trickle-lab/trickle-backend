@@ -1,4 +1,5 @@
 import { rpc, scValToNative } from "@stellar/stellar-sdk";
+import { loadState, saveState } from "../store.js";
 
 const RPC_URL = process.env.STELLAR_RPC_URL || "https://soroban-testnet.stellar.org";
 const CONTRACT_ID = process.env.CONTRACT_ID!;
@@ -16,10 +17,11 @@ export interface DecodedStreamEvent {
   txHash: string;
 }
 
-export const streamEvents: DecodedStreamEvent[] = [];
-const seenEventIds = new Set<string>();
-
-let lastLedger: number | undefined;
+// Restore history saved by a previous run so a restart doesn't lose data
+const saved = loadState();
+export const streamEvents: DecodedStreamEvent[] = saved.events;
+const seenEventIds = new Set<string>(streamEvents.map((e) => e.id));
+let lastLedger: number | undefined = saved.lastLedger;
 
 function decodeEvent(event: any): DecodedStreamEvent | null {
   try {
@@ -52,9 +54,10 @@ function decodeEvent(event: any): DecodedStreamEvent | null {
 
 export async function pollEvents() {
   try {
+    // getHealth avoids parsing full ledger metadata, which newer protocol versions break on
     const health = await server.getHealth();
     const latest = { sequence: health.latestLedger };
-    const startLedger = lastLedger ?? Math.max(latest.sequence - 17280, health.oldestLedger);
+    const startLedger = Math.max(lastLedger ?? latest.sequence - 17280, health.oldestLedger);
 
     const response = await server.getEvents({
       startLedger,
@@ -67,6 +70,7 @@ export async function pollEvents() {
       limit: 50,
     });
 
+    let added = false;
     for (const event of response.events) {
       if (seenEventIds.has(event.id)) continue;
 
@@ -75,17 +79,19 @@ export async function pollEvents() {
         console.log("New stream event:", decoded);
         streamEvents.push(decoded);
         seenEventIds.add(event.id);
+        added = true;
       }
     }
 
     lastLedger = latest.sequence;
+    if (added) saveState({ events: streamEvents, lastLedger });
   } catch (err) {
     console.error("Error polling events:", (err as any)?.code ?? (err as any)?.message ?? err);
   }
 }
 
 export function startIndexer(intervalMs = 5000) {
-  console.log("Starting Trickle indexer...");
+  console.log(`Starting Trickle indexer (${streamEvents.length} saved events loaded)...`);
   pollEvents();
   setInterval(pollEvents, intervalMs);
 }
