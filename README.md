@@ -33,7 +33,7 @@ Amounts are in stroops (1 XLM = 10,000,000) and returned as strings.
 ## How it works
 
 1. Every 5 seconds the indexer asks the Soroban RPC for events emitted by the contract.
-2. It decodes the `stream/created` and `stream/withdraw` events and skips ones it has already seen.
+2. It decodes the `stream/created`, `stream/withdraw` and `stream/cancel` events and skips ones it has already seen.
 3. Events are saved to `data/events.json`, so a restart keeps the history.
 4. `/streams` replays each stream's events to work out how much has vested and how much is still available to withdraw.
 
@@ -49,7 +49,6 @@ Amounts are in stroops (1 XLM = 10,000,000) and returned as strings.
 ## Known limitations (good first issues)
 
 - Events are stored in a JSON file. Moving to Postgres is planned.
-- The contract does not emit a `cancel` event yet, so cancelled streams cannot be detected.
 - `getEvents` is called with a limit of 50 and no pagination, so very busy contracts could drop events.
 - RPC calls have no retry or backoff logic.
 

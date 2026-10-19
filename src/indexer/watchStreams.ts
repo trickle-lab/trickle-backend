@@ -12,17 +12,22 @@ export interface DecodedStreamEvent {
   streamId: string;
   amount?: string;
   duration?: string;
+  refunded?: string;
   ledger: number;
   ledgerClosedAt: string;
   txHash: string;
 }
 
 // Restore history saved by a previous run so a restart doesn't lose data
-const saved = loadState();
+const saved = loadState(CONTRACT_ID);
 export const streamEvents: DecodedStreamEvent[] = saved.events;
 const seenEventIds = new Set<string>(streamEvents.map((e) => e.id));
 let lastLedger: number | undefined = saved.lastLedger;
 
+// Event payloads emitted by the contract:
+//   stream/created  -> (stream_id, amount, duration)
+//   stream/withdraw -> (stream_id, amount_withdrawn)
+//   stream/cancel   -> (stream_id, paid_to_recipient, refunded_to_sender)
 function decodeEvent(event: any): DecodedStreamEvent | null {
   try {
     const topic = event.topic.map((t: any) => scValToNative(t));
@@ -43,6 +48,9 @@ function decodeEvent(event: any): DecodedStreamEvent | null {
 
     if (eventType === "created" && value[2] !== undefined) {
       decoded.duration = value[2].toString();
+    }
+    if (eventType === "cancel" && value[2] !== undefined) {
+      decoded.refunded = value[2].toString();
     }
 
     return decoded;
@@ -84,7 +92,7 @@ export async function pollEvents() {
     }
 
     lastLedger = latest.sequence;
-    if (added) saveState({ events: streamEvents, lastLedger });
+    if (added) saveState({ contractId: CONTRACT_ID, events: streamEvents, lastLedger });
   } catch (err) {
     console.error("Error polling events:", (err as any)?.code ?? (err as any)?.message ?? err);
   }
