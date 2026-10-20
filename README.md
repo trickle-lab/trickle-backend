@@ -56,6 +56,8 @@ Amounts are in stroops (1 XLM = 10,000,000) and returned as strings.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
+![Trickle architecture](docs/architecture.png)
+
 ## Part of Trickle
 
 - [trickle-contract](https://github.com/trickle-lab/trickle-contract)
